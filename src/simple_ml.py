@@ -20,7 +20,7 @@ def add(x, y):
         Sum of x + y
     """
     ### BEGIN YOUR CODE
-    pass
+    return x + y
     ### END YOUR CODE
 
 
@@ -48,7 +48,15 @@ def parse_mnist(image_filename, label_filename):
                 for MNIST will contain the values 0-9.
     """
     ### BEGIN YOUR CODE
-    pass
+    def _gz_to_np(file, of):
+        a_file = gzip.open(file, "rb")
+        a_file = np.frombuffer(a_file.read(), 'B', offset=of)
+        assert of == 16 or of == 8
+        if of == 16:
+            return a_file.reshape(-1, 784).astype('float32') / 255.0
+        else:
+            return a_file
+    return _gz_to_np(image_filename, 16), _gz_to_np(label_filename, 8)
     ### END YOUR CODE
 
 
@@ -68,7 +76,7 @@ def softmax_loss(Z, y):
         Average softmax loss over the sample.
     """
     ### BEGIN YOUR CODE
-    pass
+    return np.mean([np.log(np.sum(np.exp(Z[i]))) - Z[i][yy] for i, yy in enumerate(y)])
     ### END YOUR CODE
 
 
@@ -91,7 +99,18 @@ def softmax_regression_epoch(X, y, theta, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    def normalise_exp(x):
+        x = np.exp(x)
+        return x / np.sum(x, axis=1).reshape(-1, 1)
+
+    eye = np.eye(theta.shape[1])
+    for i in range(0, X.shape[0], batch):
+        x_batch = X[i : i + batch]
+        y_batch = y[i : i + batch]
+        z = np.matmul(x_batch, theta) # (batch, n) * (n, k)
+        z = normalise_exp(z)
+        grad = np.matmul(x_batch.T, z - eye[y_batch]) # (n, batch) * (batch, k)
+        theta -= lr * grad / batch
     ### END YOUR CODE
 
 
@@ -118,7 +137,22 @@ def nn_epoch(X, y, W1, W2, lr = 0.1, batch=100):
         None
     """
     ### BEGIN YOUR CODE
-    pass
+    def nor_exp(x):
+        x = np.exp(x)
+        return x / np.sum(x, axis=1).reshape(-1, 1)
+
+    def relu(x):
+        return np.maximum(x, 0)
+
+    eye = np.eye(W2.shape[1])
+    for i in range(0, X.shape[0], batch):
+        x_batch = X[i : i + batch]
+        y_batch = y[i : i + batch]
+        z1 = relu(np.matmul(x_batch, W1))
+        g2 = nor_exp(np.matmul(z1, W2)) - eye[y_batch]
+        g1 = np.where(z1 > 0, 1., 0.) * np.matmul(g2, W2.T)
+        W1 -= np.matmul(x_batch.T, g1) * lr / batch
+        W2 -= np.matmul(z1.T, g2) * lr / batch
     ### END YOUR CODE
 
 
